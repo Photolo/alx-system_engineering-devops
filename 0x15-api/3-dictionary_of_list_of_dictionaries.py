@@ -1,30 +1,38 @@
 #!/usr/bin/python3
-'''A script that gathers data from an API and exports it to a JSON file.
-'''
+"""
+using this REST API, for a given employee ID, returns information
+about his/her TODO list progress.
+"""
 import json
 import requests
+import sys
 
 
-API_URL = 'https://jsonplaceholder.typicode.com'
-'''The API's URL.'''
+def main():
+    """Entry point"""
+    res = requests.get("https://jsonplaceholder.typicode.com/users")
+    filename = "todo_all_employees.json"
+    users_tasks = {}
+    if res.status_code == 200:
+        users = res.json()
+        for user in users:
+            user_id = user.get('id')
+            url = "https://jsonplaceholder.typicode.com/user/{}/todos".\
+                  format(user_id)
+            res1 = requests.get(url)
+
+            tasks = res1.json()
+            users_tasks[user_id] = []
+            for task in tasks:
+                data = {
+                        'task':  task.get('title'),
+                        'completed': task.get('completed'),
+                        'username': user.get('username'),
+                }
+                users_tasks[user_id].append(data)
+        with open(filename, 'w') as fp:
+            json.dump(users_tasks, fp)
 
 
 if __name__ == '__main__':
-    users_res = requests.get('{}/users'.format(API_URL)).json()
-    todos_res = requests.get('{}/todos'.format(API_URL)).json()
-    users_data = {}
-    for user in users_res:
-        id = user.get('id')
-        user_name = user.get('username')
-        todos = list(filter(lambda x: x.get('userId') == id, todos_res))
-        user_data = list(map(
-            lambda x: {
-                'username': user_name,
-                'task': x.get('title'),
-                'completed': x.get('completed')
-            },
-            todos
-        ))
-        users_data['{}'.format(id)] = user_data
-    with open('todo_all_employees.json', 'w') as file:
-        json.dump(users_data, file)
+    main()
